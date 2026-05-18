@@ -35,8 +35,10 @@
            ====================================================== -->
       <form
         class="contact-form"
+        id="contact-form"
         action="https://api.web3forms.com/submit"
         method="POST"
+        novalidate
       >
         <!-- Web3Forms access key — replace this value -->
         <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE" />
@@ -78,6 +80,8 @@
             required
             autocomplete="email"
           />
+          <!-- Shown if a blocked domain is entered -->
+          <p class="field-error" id="email-error" aria-live="polite"></p>
         </div>
 
         <div class="form-field">
@@ -88,14 +92,22 @@
             rows="6"
             placeholder="Tell me a bit about your company and what you're working on."
             required
+            minlength="30"
           ></textarea>
+          <!-- Character count shown as user types -->
+          <p class="field-hint" id="message-hint">Minimum 30 characters. <span id="char-count">0</span> so far.</p>
         </div>
 
         <button type="submit" class="cta-link form-submit">Send message</button>
 
-        <!-- Success / error message shown after submission -->
         <p class="form-result" id="form-result" aria-live="polite"></p>
       </form>
+
+      <!-- Shown after successful submission in place of the form -->
+      <div class="form-success-state" id="form-success" style="display:none;">
+        <p class="form-result form-result--success">Message sent — thanks. I'll be in touch soon.</p>
+        <button class="cta-link form-resubmit" id="form-resubmit">Send another message</button>
+      </div>
 
       <div class="contact-channels">
         <div class="contact-channel">
@@ -112,16 +124,58 @@
 
   </div>
 
-  <!-- Handles form submission without a page reload -->
   <script>
     (function () {
-      var form = document.querySelector('.contact-form');
-      var result = document.getElementById('form-result');
+      var form        = document.getElementById('contact-form');
+      var successBox  = document.getElementById('form-success');
+      var resubmitBtn = document.getElementById('form-resubmit');
+      var result      = document.getElementById('form-result');
+      var emailInput  = document.getElementById('email');
+      var emailError  = document.getElementById('email-error');
+      var messageArea = document.getElementById('message');
+      var charCount   = document.getElementById('char-count');
 
-      if (!form) return;
+      // Domains that are blocked as placeholder/test addresses
+      var blockedDomains = ['example.com', 'test.com', 'example.org', 'test.org', 'example.net', 'mailinator.com', 'tempmail.com'];
+
+      // Update character count live as the user types
+      messageArea.addEventListener('input', function () {
+        var len = messageArea.value.trim().length;
+        charCount.textContent = len;
+        charCount.style.color = len >= 30 ? 'var(--color-accent)' : 'inherit';
+      });
+
+      // Validate email domain against blocked list; return error string or empty string
+      function validateEmail(value) {
+        var domain = value.split('@')[1] || '';
+        if (blockedDomains.indexOf(domain.toLowerCase()) !== -1) {
+          return 'Please use your real work or personal email address.';
+        }
+        return '';
+      }
+
+      // Show inline email error on blur so the user gets feedback before submitting
+      emailInput.addEventListener('blur', function () {
+        var err = validateEmail(emailInput.value);
+        emailError.textContent = err;
+      });
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
+
+        // Re-run email validation on submit in case blur never fired
+        var emailErr = validateEmail(emailInput.value);
+        if (emailErr) {
+          emailError.textContent = emailErr;
+          emailInput.focus();
+          return;
+        }
+
+        // Enforce 30-character minimum on message
+        if (messageArea.value.trim().length < 30) {
+          messageArea.focus();
+          return;
+        }
 
         var submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
@@ -129,25 +183,25 @@
         result.textContent = '';
         result.className = 'form-result';
 
-        var data = new FormData(form);
-
         fetch('https://api.web3forms.com/submit', {
           method: 'POST',
-          body: data
+          body: new FormData(form)
         })
           .then(function (res) { return res.json(); })
           .then(function (json) {
             if (json.success) {
-              result.textContent = 'Message sent — thanks. I\'ll be in touch soon.';
-              result.classList.add('form-result--success');
+              // Hide the form and show the success state with a re-submit option
+              form.style.display = 'none';
+              successBox.style.display = 'block';
               form.reset();
+              charCount.textContent = '0';
             } else {
-              result.textContent = 'Something went wrong. Please try emailing me directly.';
+              result.textContent = 'Something went wrong. Please try again.';
               result.classList.add('form-result--error');
             }
           })
           .catch(function () {
-            result.textContent = 'Something went wrong. Please try emailing me directly.';
+            result.textContent = 'Something went wrong. Please try again.';
             result.classList.add('form-result--error');
           })
           .finally(function () {
@@ -155,6 +209,13 @@
             submitBtn.textContent = 'Send message';
           });
       });
+
+      // Re-submit button brings the form back and hides the success state
+      resubmitBtn.addEventListener('click', function () {
+        successBox.style.display = 'none';
+        form.style.display = 'flex';
+      });
+
     })();
   </script>
 
