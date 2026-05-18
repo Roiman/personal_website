@@ -367,6 +367,12 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(61, 107, 142, 0.12);
 }
 
+.form-field input[aria-invalid="true"],
+.form-field textarea[aria-invalid="true"] {
+  border-color: #8b2020;
+  box-shadow: 0 0 0 3px rgba(139, 32, 32, 0.08);
+}
+
 .form-field textarea {
   resize: vertical;
   min-height: 140px;

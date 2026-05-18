@@ -227,6 +227,10 @@
         var emailErr = validateEmail(emailInput.value);
         var messageErr = validateMessage(messageArea.value);
 
+        nameInput.setAttribute('aria-invalid', nameErr ? 'true' : 'false');
+        emailInput.setAttribute('aria-invalid', emailErr ? 'true' : 'false');
+        messageArea.setAttribute('aria-invalid', messageErr ? 'true' : 'false');
+
         nameError.textContent = nameErr;
         emailError.textContent = emailErr;
         messageError.textContent = messageErr;
