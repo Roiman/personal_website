@@ -28,11 +28,6 @@
       </header>
 
       <p class="contact-intro">Fill in the form below and I'll get back to you within a day or two.</p>
-
-      <!-- ======================================================
-           CONTACT FORM — powered by Web3Forms (web3forms.com)
-           Replace YOUR_ACCESS_KEY_HERE with your actual key.
-           ====================================================== -->
       <form
         class="contact-form"
         id="contact-form"
@@ -40,16 +35,15 @@
         method="POST"
         novalidate
       >
-        <!-- Web3Forms access key — replace this value -->
-        <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE" />
+        <input type="hidden" name="access_key" value="6ef7ef2e-a9ec-427f-9721-2c262ca38fb3" />
 
-        <!-- Redirect to a thank-you message on the same page -->
+        <!-- Thank-you message -->
         <input type="hidden" name="redirect" value="false" />
 
-        <!-- Subject line in the email you receive -->
-        <input type="hidden" name="subject" value="New message from roiman.com" />
+        <!-- Subject line -->
+        <input type="hidden" name="subject" value="New Contact Submission" />
 
-        <!-- Honeypot: hidden from real users, catches bots that fill every field -->
+        <!-- Honeypot -->
         <input
           type="checkbox"
           name="botcheck"
@@ -68,6 +62,7 @@
             required
             autocomplete="name"
           />
+          <p class="field-error" id="name-error" aria-live="polite"></p>
         </div>
 
         <div class="form-field">
@@ -94,8 +89,9 @@
             required
             minlength="30"
           ></textarea>
+          <p class="field-error" id="message-error" aria-live="polite"></p>
           <!-- Character count shown as user types -->
-          <p class="field-hint" id="message-hint">Minimum 30 characters. <span id="char-count">0</span> so far.</p>
+          <p class="field-hint" id="message-hint"><span id="char-count">0</span>/30 minimum characters.</p>
         </div>
 
         <button type="submit" class="cta-link form-submit">Send message</button>
@@ -129,11 +125,17 @@
       var form        = document.getElementById('contact-form');
       var successBox  = document.getElementById('form-success');
       var resubmitBtn = document.getElementById('form-resubmit');
-      var result      = document.getElementById('form-result');
-      var emailInput  = document.getElementById('email');
-      var emailError  = document.getElementById('email-error');
-      var messageArea = document.getElementById('message');
-      var charCount   = document.getElementById('char-count');
+      var result       = document.getElementById('form-result');
+
+      var nameInput    = document.getElementById('name');
+      var nameError    = document.getElementById('name-error');
+
+      var emailInput   = document.getElementById('email');
+      var emailError   = document.getElementById('email-error');
+
+      var messageArea  = document.getElementById('message');
+      var messageError = document.getElementById('message-error');
+      var charCount    = document.getElementById('char-count');
 
       // Domains that are blocked as placeholder/test addresses
       var blockedDomains = ['example.com', 'test.com', 'example.org', 'test.org', 'example.net', 'mailinator.com', 'tempmail.com'];
@@ -147,33 +149,100 @@
 
       // Validate email domain against blocked list; return error string or empty string
       function validateEmail(value) {
-        var domain = value.split('@')[1] || '';
-        if (blockedDomains.indexOf(domain.toLowerCase()) !== -1) {
+        var trimmedValue = value.trim();
+
+        if (!trimmedValue) {
+          return 'Please enter your email address.';
+        }
+
+        var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailPattern.test(trimmedValue)) {
+          return 'Please enter a valid email address.';
+        }
+
+        var domain = trimmedValue.split('@')[1].toLowerCase();
+
+        if (blockedDomains.indexOf(domain) !== -1) {
           return 'Please use your real work or personal email address.';
         }
+
         return '';
       }
 
+
+      // Validate names
+
+      function validateName(value) {
+        if (!value.trim()) {
+          return 'Please enter your name.';
+        }
+
+        if (value.trim().length < 2) {
+          return 'Name must be at least 2 characters long.';
+        }
+
+        return '';
+      }
+
+    // Validate messages
+
+    function validateMessage(value) {
+      if (value.trim().length < 30) {
+        return 'Message must be at least 30 characters long.';
+      }
+
+      return '';
+    }
+
+    // Clean Errors
+    function clearErrors() {
+      nameError.textContent = '';
+      emailError.textContent = '';
+      messageError.textContent = '';
+      result.textContent = '';
+      result.className = 'form-result';
+    }
+
       // Show inline email error on blur so the user gets feedback before submitting
+      nameInput.addEventListener('blur', function () {
+        nameError.textContent = validateName(nameInput.value);
+      });
+
       emailInput.addEventListener('blur', function () {
-        var err = validateEmail(emailInput.value);
-        emailError.textContent = err;
+        emailError.textContent = validateEmail(emailInput.value);
+      });
+
+      messageArea.addEventListener('blur', function () {
+        messageError.textContent = validateMessage(messageArea.value);
       });
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
 
         // Re-run email validation on submit in case blur never fired
-        var emailErr = validateEmail(emailInput.value);
-        if (emailErr) {
-          emailError.textContent = emailErr;
-          emailInput.focus();
-          return;
-        }
+        clearErrors();
 
-        // Enforce 30-character minimum on message
-        if (messageArea.value.trim().length < 30) {
-          messageArea.focus();
+        var nameErr = validateName(nameInput.value);
+        var emailErr = validateEmail(emailInput.value);
+        var messageErr = validateMessage(messageArea.value);
+
+        nameError.textContent = nameErr;
+        emailError.textContent = emailErr;
+        messageError.textContent = messageErr;
+
+        if (nameErr || emailErr || messageErr) {
+          result.textContent = 'Please fix the highlighted fields before sending.';
+          result.classList.add('form-result--error');
+
+          if (nameErr) {
+            nameInput.focus();
+          } else if (emailErr) {
+            emailInput.focus();
+          } else {
+            messageArea.focus();
+          }
+
           return;
         }
 
